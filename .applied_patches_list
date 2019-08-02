@@ -1,0 +1,7 @@
+/home/guoliangzhi/rk3308_dev/buildroot/package/bluez5_utils/0001-bluez-a2dp-fix-a2dp-volume-control-using-iphone.patch
+/home/guoliangzhi/rk3308_dev/buildroot/package/bluez5_utils/0001-fix-bt-music-noise-when-wifi-is-not-connect.patch
+/home/guoliangzhi/rk3308_dev/buildroot/package/bluez5_utils/0001-tools-bneptest.c-Remove-include-linux-if_bridge.h-to.patch
+/home/guoliangzhi/rk3308_dev/buildroot/package/bluez5_utils/0002-fix-authentication-err-for-echo.patch
+/home/guoliangzhi/rk3308_dev/buildroot/package/bluez5_utils/0003-Adapt-to-base-and-dueros-ble-wifi-config.patch
+/home/guoliangzhi/rk3308_dev/buildroot/package/bluez5_utils/0004-adapter-add-sendmsg-function.patch
+/home/guoliangzhi/rk3308_dev/buildroot/package/bluez5_utils/0004-bluetoothd-not-load-battery-plugin.patch
