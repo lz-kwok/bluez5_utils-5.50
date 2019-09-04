@@ -37,9 +37,6 @@
 #include <sys/stat.h>
 #include <dirent.h>
 
-#include <string.h>
-#include <sys/msg.h>
- 
 #include <glib.h>
 #include <dbus/dbus.h>
 
@@ -100,14 +97,6 @@
 #define HCI_RSSI_INVALID	127
 #define DISTANCE_VAL_INVALID	0x7FFF
 #define PATHLOSS_MAX		137
-
-#define MAX_TEXT 512
-#define BT_MSG_TYPE 1
-struct msg_st
-{
-	int msg_type;
-	char text[MAX_TEXT];
-};
 
 static DBusConnection *dbus_conn = NULL;
 
@@ -282,30 +271,6 @@ typedef enum {
 	ADAPTER_AUTHORIZE_DISCONNECTED = 0,
 	ADAPTER_AUTHORIZE_CHECK_CONNECTED
 } adapter_authorize_type;
-
-static void send_msg(int type,char *msg)
-{
-	struct msg_st data;
-	int msgid = -1;
-	int len;
- 
-	msgid = msgget((key_t)1234, 0666 | IPC_CREAT);
-	if(msgid == -1)
-	{
-		printf("msgget failed with error: %d\n", errno);
-		return;
-	}
-	data.msg_type = type;
-	strcpy(data.text, msg);
-	len = strlen(data.text);
-	
-	if(msgsnd(msgid, (void*)&data, len, 0) == -1)
-	{
-		printf("msgsnd failed\n");
-		return;
-	}
-}
-
 
 static struct btd_adapter *btd_adapter_lookup(uint16_t index)
 {
@@ -6406,9 +6371,9 @@ static gboolean process_auth_queue(gpointer user_data)
 
 		auth->agent = agent_get(NULL);
 		if (auth->agent == NULL) {
-		//	btd_warn(adapter->dev_id,
-		//			"Authentication attempt without agent");
-			auth->cb(NULL, auth->user_data);
+			btd_warn(adapter->dev_id,
+					"Authentication attempt without agent");
+			auth->cb(&err, auth->user_data);
 			goto next;
 		}
 
@@ -6776,7 +6741,7 @@ static void user_confirm_request_callback(uint16_t index, uint16_t length,
 		btd_error(adapter->dev_id,
 				"device_confirm_passkey: %s", strerror(-err));
 		btd_adapter_confirm_reply(adapter, &ev->addr.bdaddr,
-							ev->addr.type, TRUE);
+							ev->addr.type, FALSE);
 	}
 }
 
@@ -7256,8 +7221,6 @@ static void dev_disconnected(struct btd_adapter *adapter,
 
 	bonding_attempt_complete(adapter, &addr->bdaddr, addr->type,
 						MGMT_STATUS_DISCONNECTED);
-	
-	send_msg(BT_MSG_TYPE,"bt_disconnected");
 }
 
 void btd_add_disconnect_cb(btd_disconnect_cb func)
@@ -8179,8 +8142,6 @@ static void connected_callback(uint16_t index, uint16_t length,
 		adapter_msd_notify(adapter, device, eir_data.msd_list);
 
 	eir_data_free(&eir_data);
-	
-	send_msg(BT_MSG_TYPE,"bt_connected");
 }
 
 static void device_blocked_callback(uint16_t index, uint16_t length,
