@@ -34,6 +34,9 @@
 #include <unistd.h>
 #include <assert.h>
 
+#include <string.h>
+#include <sys/msg.h>
+
 #include <glib.h>
 
 #include "lib/bluetooth.h"
@@ -417,6 +420,15 @@ struct avdtp {
 	gboolean stream_setup;
 };
 
+#define MAX_TEXT 512
+#define BT_MSG_TYPE 1
+#define BT_PLAYER_MSG_TYPE 2
+struct msg_st
+{
+	int msg_type;
+	char text[MAX_TEXT];
+};
+
 static GSList *state_callbacks = NULL;
 
 static int send_request(struct avdtp *session, gboolean priority,
@@ -434,6 +446,30 @@ static int process_queue(struct avdtp *session);
 static void avdtp_sep_set_state(struct avdtp *session,
 				struct avdtp_local_sep *sep,
 				avdtp_state_t state);
+
+
+static void send_msg(int type,char *msg)
+{
+	struct msg_st data;
+	int msgid = -1;
+	int len;
+ 
+	msgid = msgget((key_t)1234, 0666 | IPC_CREAT);
+	if(msgid == -1)
+	{
+		printf("msgget failed with error: %d\n", errno);
+		return;
+	}
+	data.msg_type = type;
+	strcpy(data.text, msg);
+	len = strlen(data.text);
+	
+	if(msgsnd(msgid, (void*)&data, len, 0) == -1)
+	{
+		printf("msgsnd failed\n");
+		return;
+	}
+}
 
 static const char *avdtp_statestr(avdtp_state_t state)
 {
@@ -1975,15 +2011,19 @@ static gboolean avdtp_parse_cmd(struct avdtp *session, uint8_t transaction,
 		return avdtp_reconf_cmd(session, transaction, buf, size);
 	case AVDTP_OPEN:
 		DBG("Received OPEN_CMD");
+		send_msg(BT_MSG_TYPE,"bt_connected");
 		return avdtp_open_cmd(session, transaction, buf, size);
 	case AVDTP_START:
 		DBG("Received START_CMD");
+		send_msg(BT_PLAYER_MSG_TYPE,"start_play");
 		return avdtp_start_cmd(session, transaction, buf, size);
 	case AVDTP_CLOSE:
 		DBG("Received CLOSE_CMD");
+		send_msg(BT_MSG_TYPE,"bt_disconnected");
 		return avdtp_close_cmd(session, transaction, buf, size);
 	case AVDTP_SUSPEND:
 		DBG("Received SUSPEND_CMD");
+		send_msg(BT_PLAYER_MSG_TYPE,"pause_play");
 		return avdtp_suspend_cmd(session, transaction, buf, size);
 	case AVDTP_ABORT:
 		DBG("Received ABORT_CMD");
